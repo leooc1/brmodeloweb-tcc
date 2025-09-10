@@ -1,0 +1,22 @@
+.tables-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.tables-list button:focus {
+	box-shadow: none;
+}
+
+.tables-list button.selected {
+	border: 2px solid #007bff;
+	background-color: #e6f0ff;
+	color: #007bff;
+}
+
+.tables-list li {
+	margin: 0;
+}

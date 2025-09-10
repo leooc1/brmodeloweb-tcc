@@ -1,18 +1,20 @@
 import angular from "angular";
 import template from "./logic.html";
 import sqlGeneratorService from "../service/sqlGeneratorService";
+import sqlNormalizerService from "../service/sqlNormalizerService";
 import sqlGeneratorModal from "../components/sqlGeneratorModal";
 import duplicateModelModal from "../components/duplicateModelModal";
 import shareModelModal from "../components/shareModelModal";
 import queryExpressionModal from "../components/queryExpressionModal";
 import sqlComparasionDropdown from "../components/sqlComparasionDropdown";
+import normalizerModal from "../components/normalizerModal";
 import statusBar from "../components/statusBar";
 import preventExitServiceModule from "../service/preventExitService";
 import view from "../view/view";
 import columnForm from "./columnForm";
 import checkConstraint from "./checkConstraint";
 import sidebarControlLogical from "./sidebarControl";
-import iconLogic from  "../components/icons/logic";
+import iconLogic from "../components/icons/logic";
 import supportBannersList from "../components/supportBannersList";
 
 const controller = function (
@@ -24,6 +26,7 @@ const controller = function (
 	$state,
 	$timeout,
 	SqlGeneratorService,
+	SqlNormalizerService,
 	$filter,
 	preventExitService,
 	$transitions
@@ -107,7 +110,7 @@ const controller = function (
 			ctrl.selectedLink = null;
 			const type = element.model.attributes.type;
 			const value = element.model.attributes.attrs.text.text;
-			ctrl.selectedElement = {"value": value, "type": type, "element": element};
+			ctrl.selectedElement = { "value": value, "type": type, "element": element };
 		});
 	});
 
@@ -115,7 +118,7 @@ const controller = function (
 		$timeout(() => {
 			ctrl.addColumnVisible = false;
 			ctrl.columns = [];
-			if(columns != null) {
+			if (columns != null) {
 				for (var i = 0; i < columns.length; i++) {
 					columns[i].expanded = false;
 					ctrl.columns.push(columns[i]);
@@ -127,11 +130,11 @@ const controller = function (
 
 	$rootScope.$on('element:update', function (event, element) {
 		$timeout(() => {
-			if(typeof element?.model.getType === "function" && (element?.model?.getType() === "Class" || element?.model?.getType() === "View")) {
-				if(element != null && element.update != null) {
+			if (typeof element?.model.getType === "function" && (element?.model?.getType() === "Class" || element?.model?.getType() === "View")) {
+				if (element != null && element.update != null) {
 					element.update();
 				}
-				if(element != null && element.resize != null) {
+				if (element != null && element.resize != null) {
 					element.resize();
 				}
 				element.updateSize();
@@ -163,7 +166,7 @@ const controller = function (
 	});
 
 	$rootScope.$on("model:loaderror", function (_, error) {
-		if(error.status == 404 || error.status == 401) {
+		if (error.status == 404 || error.status == 401) {
 			$state.go("noaccess");
 		}
 	});
@@ -216,17 +219,43 @@ const controller = function (
 		});
 	}
 
+	ctrl.openNormalizer = function () {
+		const tablesMap = LogicService.buildTablesJson();
+		const allAttributes = [];
+		const allDependencies = [];
+
+		// Transformar Map em array
+		tablesMap.forEach(table => {
+			table.columns.forEach(col => allAttributes.push(col.name));
+			table.dependencies.forEach(df => allDependencies.push(df));
+		});
+		console.log(tablesMap);
+		
+		$uibModal.open({
+			animation: true,
+			component: 'normalizerModal', // Abrir o componente direto
+			windowClass: 'normalizer-modal',
+			resolve: {
+				initialAttributes: () => allAttributes,
+				initialDependencies: () => allDependencies
+			}
+		}).result.then(result => {
+			console.log("Normalização aplicada:", result);
+			// Aqui você pode aplicar o resultado no modelo real se quiser
+		});
+	};
+
 	ctrl.duplicateModel = (model) => {
 		const modalInstance = $uibModal.open({
 			animation: true,
 			template: `<duplicate-model-modal
-						suggested-name="$ctrl.suggestedName"
-						close="$close(result)"
-						dismiss="$dismiss(reason)"
-						user-id=$ctrl.userId
-						model-id=$ctrl.modelId>
-					</duplicate-model-modal>`,
-			controller: function() {
+							suggested-name="$ctrl.suggestedName"
+							close="$close(result)"
+							dismiss="$dismiss(reason)"
+							user-id=$ctrl.userId
+							model-id=$ctrl.modelId>
+						</duplicate-model-modal>`,
+			controller: function () {
 				const $ctrl = this;
 				$ctrl.suggestedName = $filter('translate')("MODEL_NAME (copy)", { name: model.name });
 				$ctrl.modelId = model.id;
@@ -248,7 +277,7 @@ const controller = function (
 			backdrop: 'static',
 			keyboard: false,
 			template: '<share-model-modal close="$close(result)" dismiss="$dismiss()" model-id="$ctrl.modelId"></share-model-modal>',
-			controller: function() {
+			controller: function () {
 				const $ctrl = this;
 				$ctrl.modelId = model.id;
 			},
@@ -280,8 +309,10 @@ const controller = function (
 export default angular
 	.module("app.workspace.logic", [
 		sqlGeneratorService,
+		sqlNormalizerService,
 		sqlGeneratorModal,
 		duplicateModelModal,
+		normalizerModal,
 		preventExitServiceModule,
 		statusBar,
 		view,

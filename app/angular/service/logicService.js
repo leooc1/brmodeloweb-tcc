@@ -395,7 +395,7 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 			if (link != null) {
 				link.remove();
 			}
-		} 
+		}
 		ls.selectedElement.model.deleteColumn(index);
 		$rootScope.$broadcast('element:update', ls.selectedElement);
 	}
@@ -555,17 +555,31 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 	}
 
 	ls.buildTablesJson = function () {
-		var map = new Map();
-		var elements = ls.graph.getElements();
-		elements.filter(isTable).forEach(element => {
-			var obj = {
-				name: element.attributes.name,
-				columns: element.attributes.objects
-			}
-			map.set(element.id, obj);
-		});
-		return map;
-	}
+    var map = new Map();
+    var elements = ls.graph.getElements().filter(isTable);
+
+    elements.forEach(element => {
+        var obj = {
+            name: element.attributes.name,
+            columns: element.attributes.objects,
+            dependencies: [] // Novo campo para DFs
+        };
+
+        // Extrair dependências funcionais baseadas em FK
+        element.attributes.objects.forEach(col => {
+            if (col.FK && col.tableOrigin) {
+                obj.dependencies.push({
+                    left: col.name,
+                    right: col.tableOrigin.name || col.tableOrigin.idOrigin || "?"
+                });
+            }
+        });
+
+        map.set(element.id, obj);
+    });
+
+    return map;
+}
 
 	ls.unbindAll = () => {
 		ls.keyboardController.unbindAll()
