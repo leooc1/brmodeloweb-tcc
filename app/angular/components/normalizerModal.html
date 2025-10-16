@@ -4,39 +4,74 @@
 
 <div class="modal-body">
 	<h4>{{ 'Tabelas' | translate }}</h4>
-	<ul class="tables-list">
-		<li ng-repeat="table in $ctrl.tables">
-			<button ng-click="$ctrl.selectTable(table)"
-			ng-class="{'selected': $ctrl.selectedTable === table}">
-				{{ table.name }}
-			</button>
+	<!-- Abas de tabelas -->
+	<ul class="tabs">
+		<li ng-repeat="table in $ctrl.tables"
+		    ng-click="$ctrl.selectTable(table)"
+		    ng-class="{'active': $ctrl.selectedTable === table}">
+			{{ table.name }}
 		</li>
 	</ul>
 
 	<h4>{{ 'Atributos' | translate }}</h4>
 	<ul class="tables-list">
-		<li ng-repeat="attribute in $ctrl.attributes">
-			<button ng-click="">
-				{{ attribute }}
-			</button>
+		<li ng-repeat="attribute in $ctrl.attributes"
+		    draggable-attr
+		    attr-value="{{attribute}}"
+		    on-drag="$ctrl.startDrag(attr)">
+			<button>{{ attribute }}</button>
 		</li>
 	</ul>
 
 	<h4>{{ 'Dependências Funcionais' | translate }}</h4>
+	<div class="df-container">
+		<!-- Box determinante -->
+		<div class="df-box" droppable-box side="left" on-drop="$ctrl.onDrop(attr, side)">
+			<h5>Determinante</h5>
+			<div class="df-attr"
+			     ng-repeat="attr in $ctrl.currentDF.left track by $index"
+			     draggable-attr
+			     attr-value="{{attr}}"
+			     on-drag="$ctrl.startDrag(attr)">
+				{{ attr }}
+			</div>
+		</div>
+
+		<div class="df-arrow">→</div>
+
+		<!-- Box dependente -->
+		<div class="df-box" droppable-box side="right" on-drop="$ctrl.onDrop(attr, side)">
+			<h5>Dependente</h5>
+			<div class="df-attr"
+			     ng-repeat="attr in $ctrl.currentDF.right track by $index"
+			     draggable-attr
+			     attr-value="{{attr}}"
+			     on-drag="$ctrl.startDrag(attr)">
+				{{ attr }}
+			</div>
+		</div>
+	</div>
+
+	<button ng-click="$ctrl.addDependencyFromDrag()">
+		{{ 'Adicionar DF' | translate }}
+	</button>
+
+	<!-- Lista de DFs da tabela atual -->
 	<table>
 		<tr ng-repeat="df in $ctrl.functionalDependencies">
-			<td><input type="text" ng-model="df.left"></td>
+			<td>{{ df.left.join(', ') }}</td>
 			<td>→</td>
-			<td><input type="text" ng-model="df.right"></td>
+			<td>{{ df.right.join(', ') }}</td>
 			<td><button ng-click="$ctrl.removeDependency($index)">x</button></td>
 		</tr>
 	</table>
-	<button ng-click="$ctrl.addDependency()">{{ 'Adicionar DF' | translate }}</button>
-
 </div>
 
 <div class="modal-footer">
-	<button class="br-button" type="button" ng-click="$ctrl.cancel()">{{ 'Fechar' | translate }}</button>
-	<button class="br-button primary" type="button" ng-click="$ctrl.applyNormalization()">{{ 'Normalizar' | translate
-		}}</button>
+	<button class="br-button" type="button" ng-click="$ctrl.cancel()">
+		{{ 'Fechar' | translate }}
+	</button>
+	<button class="br-button primary" type="button" ng-click="$ctrl.applyNormalization()">
+		{{ 'Normalizar' | translate }}
+	</button>
 </div>

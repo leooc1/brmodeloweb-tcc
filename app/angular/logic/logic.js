@@ -229,8 +229,7 @@ const controller = function (
 			table.columns.forEach(col => allAttributes.push(col.name));
 			table.dependencies.forEach(df => allDependencies.push(df));
 		});
-		console.log(tablesMap);
-		
+
 		$uibModal.open({
 			animation: true,
 			component: 'normalizerModal', // Abrir o componente direto

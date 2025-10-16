@@ -54,7 +54,7 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 			cellViewNamespace: joint.shapes,
 		});
 
-		ls.editorActions = new joint.ui.EditorActions({graph: ls.graph, paper: ls.paper});
+		ls.editorActions = new joint.ui.EditorActions({ graph: ls.graph, paper: ls.paper });
 
 		ls.keyboardController = new KeyboardController(ls.paper.$document);
 
@@ -183,7 +183,7 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 
 			ls.clearSelectedElement();
 
-			if(!ls.keyboardController.spacePressed){
+			if (!ls.keyboardController.spacePressed) {
 				ls.elementSelector.start(evt);
 			} else {
 				ls.editorScroller.startPanning(evt);
@@ -217,7 +217,7 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 			ls.onLink(link);
 		});
 
-		if(cellView.model != null && cellView.model.getType() === "View") {
+		if (cellView.model != null && cellView.model.getType() === "View") {
 			elementActions.removeAction('link');
 		}
 
@@ -255,7 +255,7 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 				$rootScope.$broadcast('model:loaded', resp.data);
 				if (conversionId != null && conversionId != "" && modelid != "") {
 					ModelAPI.getModel(conversionId, userId).then(function (resp) {
-						const graph =new joint.dia.Graph({}, { cellNamespace: joint.shapes });
+						const graph = new joint.dia.Graph({}, { cellNamespace: joint.shapes });
 						const conceptualJsonModel = (typeof resp.data.model == "string") ? JSON.parse(resp.data.model) : resp.data.model;
 						const promise = LogicConversorService.toLogic(graph.fromJSON(conceptualJsonModel), ls);
 						promise.then(function (tables) {
@@ -306,12 +306,12 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 		const source = ls.graph.getCell(link.get('source').id);
 		const target = ls.graph.getCell(link.get('target').id);
 
-		if(source.getType() === "View" || target.getType() === "View") {
+		if (source.getType() === "View" || target.getType() === "View") {
 			link.remove();
 			return
 		}
 
-		if(source.getType() === "custom.Note" || target.getType() === "custom.Note") {
+		if (source.getType() === "custom.Note" || target.getType() === "custom.Note") {
 			link.attributes.attrs = {
 				'.connection': { strokeDasharray: '5,3', stroke: "#AAA7AD" }
 			}
@@ -319,7 +319,7 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 			return
 		}
 
-		if(source.getType() === "Class" && target.getType() === "Class") {
+		if (source.getType() === "Class" && target.getType() === "Class") {
 			link.label(0,
 				{
 					position: 0.2,
@@ -347,7 +347,7 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 	}
 
 	ls.clearSelectedElement = function () {
-		if(ls.selectedActions != null) {
+		if (ls.selectedActions != null) {
 			ls.selectedActions.remove();
 			ls.selectedActions = null;
 		}
@@ -366,11 +366,11 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 			name = ls.selectedElement.model.attributes.name;
 			ls.applySelectionOptions(cellView);
 
-			var selected = ls.selectedElement.model.attributes.objects;
+			var selected = ls.selectedElement.model.attributes.objects || [];
 			$rootScope.$broadcast('columns:select', selected);
 		}
 
-		if(cellView.model.attributes.type == "custom.Note") {
+		if (cellView.model.attributes.type == "custom.Note") {
 			ls.elementSelector.cancel();
 			ls.selectedElement = cellView;
 			ls.applySelectionOptions(cellView);
@@ -494,7 +494,7 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 		const hasConnections = elements.some(element => {
 			return element.attributes.objects.some(attr => attr.FK);
 		});
-		if(hasConnections) {
+		if (hasConnections) {
 			$rootScope.$broadcast('model:warning-copy');
 		} else {
 			ls.elementSelector.copyAll();
@@ -555,31 +555,93 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 	}
 
 	ls.buildTablesJson = function () {
-    var map = new Map();
-    var elements = ls.graph.getElements().filter(isTable);
+		var map = new Map();
+		var elements = ls.graph.getElements().filter(isTable);
 
-    elements.forEach(element => {
-        var obj = {
-            name: element.attributes.name,
-            columns: element.attributes.objects,
-            dependencies: [] // Novo campo para DFs
-        };
+		elements.forEach(element => {
+			var obj = {
+				name: element.attributes.name,
+				columns: element.attributes.objects,
+				dependencies: [] // Novo campo para DFs
+			};
 
-        // Extrair dependências funcionais baseadas em FK
-        element.attributes.objects.forEach(col => {
-            if (col.FK && col.tableOrigin) {
-                obj.dependencies.push({
-                    left: col.name,
-                    right: col.tableOrigin.name || col.tableOrigin.idOrigin || "?"
-                });
-            }
-        });
+			// Extrair dependências funcionais baseadas em FK
+			element.attributes.objects.forEach(col => {
+				if (col.FK && col.tableOrigin) {
+					obj.dependencies.push({
+						left: col.name,
+						right: col.tableOrigin.name || col.tableOrigin.idOrigin || "?"
+					});
+				}
+			});
 
-        map.set(element.id, obj);
-    });
+			map.set(element.id, obj);
+		});
 
-    return map;
-}
+		return map;
+	}
+
+	ls.clearTables = function () {
+		ls.graph.getLinks().forEach(link => { try { link.remove(); } catch (e) { } });
+		ls.graph.getElements().forEach(el => { try { el.remove(); } catch (e) { } });
+	}
+
+	ls.replaceTablesFromJson = function (tablesJson) {
+		console.log(tablesJson)
+		// 1) Apaga todas as tabelas atuais
+		const elements = ls.graph.getElements();
+		elements.forEach(el => {
+			if (el.attributes.type === "uml.Class") {
+				try { el.remove(); } catch (e) { }
+			}
+		});
+
+		// 2) Cria novas tabelas a partir do JSON de entrada
+		let offsetX = 50;
+		let offsetY = 50;
+		let stepX = 250; // distância horizontal entre tabelas
+		let stepY = 180; // distância vertical entre tabelas
+		let count = 0;
+
+		tablesJson.forEach((tableData, i) => {
+			const newTable = LogicFactory.createTable();
+			newTable.set("name", tableData.table);
+
+			// Ajusta largura se o nome for grande
+			if (tableData.table.length > 15) {
+				newTable.attributes.size.width = tableData.table.length * 7;
+			}
+
+			// Adiciona colunas
+			if (Array.isArray(tableData.attributes)) {
+				tableData.attributes.forEach(attr => {
+					const isPK = attr.includes(": PK");
+					const isFK = attr.includes(": FK");
+					const column = new Column({
+						name: attr.split(":")[0].trim(),
+						PK: isPK,
+						FK: isFK
+					});
+					newTable.addAttribute(column);
+				});
+			}
+
+			// (Opcional) Guardar DFs no campo dependencies
+			newTable.attributes.dependencies = tableData.dfs || [];
+
+			// === Posição calculada ===
+			// distribui em "grade", pulando para próxima linha a cada 3 tabelas
+			const row = Math.floor(count / 3);
+			const col = count % 3;
+			newTable.position(offsetX + col * stepX, offsetY + row * stepY);
+
+			ls.graph.addCell(newTable);
+			count++;
+		});
+
+		$rootScope.$broadcast("element:isDirty");
+		return true;
+	};
 
 	ls.unbindAll = () => {
 		ls.keyboardController.unbindAll()
