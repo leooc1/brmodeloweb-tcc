@@ -718,33 +718,7 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 			return result;
 		}
 
-		function toBCNF(tables) {
-			const result = [];
-			tables.forEach(t => {
-				const pk = t.attributes.find(a => a.includes(": PK"));
-				const violacao = t.dfs.find(df => {
-					const determinante = df.left;
-					return !(determinante.length === 1 && determinante[0] === pk);
-				});
-
-				if (violacao) {
-					result.push({
-						table: `${t.table}_BCNF_${violacao.left.join("_")}`,
-						attributes: [...violacao.left, ...violacao.right],
-						dfs: [violacao]
-					});
-					result.push({
-						table: t.table,
-						attributes: t.attributes.filter(a => !violacao.right.includes(a)),
-						dfs: t.dfs.filter(df => df !== violacao)
-					});
-				} else {
-					result.push(t);
-				}
-			});
-			return result;
-		}
-
+		
 		const contextTable = [];
 
 		$ctrl.tables.forEach(t => {
@@ -756,45 +730,6 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 			});
 		});
 		$ctrl.sergio = [
-			[
-				{
-					"table": "SERGIO",
-					"attributes": [
-						"A: PK",
-						"B: PK",
-						"C",
-						"D",
-						"E"
-					],
-					"dfs": [
-						{
-							"left": [
-								"A: PK"
-							],
-							"right": [
-								"C",
-								"D"
-							]
-						},
-						{
-							"left": [
-								"B: PK"
-							],
-							"right": [
-								"E"
-							]
-						},
-						{
-							"left": [
-								"D"
-							],
-							"right": [
-								"C"
-							]
-						}
-					]
-				}
-			],
 			[
 				{
 					"table": "SERGIO",
@@ -846,6 +781,45 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 							],
 							"right": [
 								"J"
+							]
+						}
+					]
+				}
+			],
+			[
+				{
+					"table": "SERGIO",
+					"attributes": [
+						"A: PK",
+						"B: PK",
+						"C",
+						"D",
+						"E"
+					],
+					"dfs": [
+						{
+							"left": [
+								"A: PK"
+							],
+							"right": [
+								"C",
+								"D"
+							]
+						},
+						{
+							"left": [
+								"B: PK"
+							],
+							"right": [
+								"E"
+							]
+						},
+						{
+							"left": [
+								"D"
+							],
+							"right": [
+								"C"
 							]
 						}
 					]
@@ -912,12 +886,12 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 		]
 
 		if (contextTable && contextTable.every(t => t.dfs.length > 0)) {
-			(to3NF(to2NF($ctrl.testeTable[0]))).forEach(table => {
+			(to3NF(to2NF($ctrl.sergio[2]))).forEach(table => {
 				if (table.dfs && table.dfs.length > 0) {
 					NormalizerStateService.setByTable(table.table, table.dfs);
 				}
 			})
-			LogicService.replaceTablesFromJson((to3NF(to2NF($ctrl.testeTable[0]))));
+			LogicService.replaceTablesFromJson((to3NF(to2NF($ctrl.sergio[2]))));
 		}
 
 		$ctrl.close({ tables: $ctrl.tables });
