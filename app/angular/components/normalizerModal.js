@@ -8,6 +8,137 @@ const app = angular.module("app.normalizerModal", [NormalizerStateServiceModule]
 function Controller(SqlNormalizerService, LogicService, NormalizerStateService) {
 	const $ctrl = this;
 
+	$ctrl.sergio = [
+		[
+			{
+				"table": "SERGIO",
+				"attributes": [
+					"A",
+					"B",
+					"C",
+					"D",
+					"F",
+					"G",
+					"H",
+					"I",
+					"J"
+				],
+				"dfs": [
+					{
+						"left": [
+							"B",
+							"C",
+							"D"
+						],
+						"right": [
+							"A",
+							"F",
+							"G"
+						]
+					},
+					{
+						"left": [
+							"C",
+							"D"
+						],
+						"right": [
+							"H",
+							"I"
+						]
+					},
+					{
+						"left": [
+							"I"
+						],
+						"right": [
+							"H"
+						]
+					},
+					{
+						"left": [
+							"H"
+						],
+						"right": [
+							"J"
+						]
+					}
+				]
+			}
+		],
+		[
+			{
+				"table": "SERGIO",
+				"attributes": [
+					"A: PK",
+					"B: PK",
+					"C",
+					"D",
+					"E"
+				],
+				"dfs": [
+					{
+						"left": [
+							"A: PK"
+						],
+						"right": [
+							"C",
+							"D"
+						]
+					},
+					{
+						"left": [
+							"B: PK"
+						],
+						"right": [
+							"E"
+						]
+					},
+					{
+						"left": [
+							"D"
+						],
+						"right": [
+							"C"
+						]
+					}
+				]
+			}
+		],
+		[
+			{
+				"table": "SERGIO",
+				"attributes": [
+					"X",
+					"Y",
+					"Z: PK",
+					"W: PK",
+					"K"
+				],
+				"dfs": [
+					{
+						"left": [
+							"X"
+						],
+						"right": [
+							"Z: PK"
+						]
+					},
+					{
+						"left": [
+							"Z: PK",
+							"W: PK"
+						],
+						"right": [
+							"X",
+							"Y",
+							"K"
+						]
+					}
+				]
+			}
+		]
+	]
+
 	$ctrl.testeTable = [
 		//lotes
 		[
@@ -238,6 +369,31 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 				]
 			}
 		],
+		// emp_dept
+		[
+			{
+				"table": "EMP_DEPT",
+				"attributes": [
+					"Ename",
+					"Ssn: PK",
+					"Bdate",
+					"Address",
+					"Dnumber",
+					"Dname",
+					"Dmgr_ssn"
+				],
+				"dfs": [
+					{
+						"left": ["Ssn: PK"],
+						"right": ["Ename", "Bdate", "Address", "Dnumber"]
+					},
+					{
+						"left": ["Dnumber"],
+						"right": ["Dname", "Dmgr_ssn"]
+					}
+				]
+			}
+		]
 	];
 	$ctrl.tables = [];
 	$ctrl.selectedTable = null;
@@ -502,223 +658,207 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 		function to3NF(tables) {
 			const result = [];
 
-			// -----------------------------
-			// 🔹 Funções Auxiliares
-			// -----------------------------
+			// Funções auxiliares básicas
+			const stripPk = (attr) => attr.replace(/: PK$/, '').trim();
+			const markPk = (attr) => `${attr}: PK`;
 
-			// Remove a marca ": PK" de um atributo e deixa só o nome
-			const stripPk = (a) => (typeof a === 'string' && a.includes(": PK")) ? a.split(": PK")[0].trim() : a;
+			// Função para calcular o fecho (closure)
+			const closure = (attributes, fds) => {
+				let closureSet = new Set(attributes);
+				let changed;
 
-			// Marca um atributo como PK
-			const markPk = (a) => `${a}: PK`;
-
-			const closureOf = (attrs, fds) => {
-				const cl = new Set(attrs);
-				let changed = true;
-
-				while (changed) {
+				do {
 					changed = false;
-					for (const d of fds) {
-						if (d.left.every(l => cl.has(l))) {
-							for (const r of d.right) {
-								if (!cl.has(r)) {
-									cl.add(r);
+					for (const fd of fds) {
+						const leftInClosure = fd.left.every(attr => closureSet.has(attr));
+						if (leftInClosure) {
+							for (const rightAttr of fd.right) {
+								if (!closureSet.has(rightAttr)) {
+									closureSet.add(rightAttr);
 									changed = true;
 								}
 							}
 						}
 					}
-				}
-				return cl;
+				} while (changed);
+
+				return closureSet;
 			};
 
-			// Gera todos os subconjuntos possíveis de uma lista de atributos.
-			// É usado para encontrar chaves candidatas.
-			const generateSubsets = (attrs) => {
-				const subsets = [];
-				const n = attrs.length;
-				const total = 1 << n;
+			// Encontrar chaves candidatas
+			const findCandidateKeys = (attributes, fds) => {
+				const allAttrs = [...attributes];
+				const candidateKeys = [];
 
-				for (let mask = 1; mask < total; mask++) {
-					const subset = [];
-					for (let i = 0; i < n; i++) {
-						if (mask & (1 << i)) subset.push(attrs[i]);
-					}
-					subsets.push(subset);
-				}
+				// Testa todos os subconjuntos possíveis
+				for (let size = 1; size <= allAttrs.length; size++) {
+					const combinations = getCombinations(allAttrs, size);
 
-				// Ordena subconjuntos por tamanho (para facilitar encontrar chave mínima)
-				subsets.sort((a, b) => a.length - b.length);
-				return subsets;
-			};
+					for (const combination of combinations) {
+						const currentClosure = closure(combination, fds);
+						const isSuperkey = allAttrs.every(attr => currentClosure.has(attr));
 
-			// Encontra as chaves candidatas de um conjunto de atributos e DFs.
-			// Faz isso testando todos os subconjuntos e verificando quais fecham todo o esquema.
-			const findCandidateKeys = (attrs, fds) => {
-				const subsets = generateSubsets(attrs);
-				const keys = [];
+						if (isSuperkey) {
+							const isMinimal = !candidateKeys.some(existingKey =>
+								existingKey.every(attr => combination.includes(attr)) &&
+								existingKey.length < combination.length
+							);
 
-				for (const s of subsets) {
-					const cl = closureOf(s, fds);
-
-					// Se o fecho cobre todos os atributos, s é superchave
-					if (attrs.every(a => cl.has(a))) {
-						let isMinimal = true;
-						// Verifica se já existe chave menor que seja subconjunto
-						for (const k of keys) {
-							if (k.length < s.length && k.every(x => s.includes(x))) {
-								isMinimal = false;
-								break;
+							if (isMinimal) {
+								candidateKeys.push(combination);
 							}
 						}
-
-						if (isMinimal) {
-							keys.push(s);
-						}
 					}
 				}
-				return keys;
+
+				return candidateKeys;
 			};
 
-			// Obtém o Cover Mínimo de um conjunto de DFs.
-			// Remove DFs redundantes
+			// Gerar combinações de tamanho k
+			const getCombinations = (array, k) => {
+				const result = [];
+
+				function combine(start, current) {
+					if (current.length === k) {
+						result.push([...current]);
+						return;
+					}
+
+					for (let i = start; i < array.length; i++) {
+						current.push(array[i]);
+						combine(i + 1, current);
+						current.pop();
+					}
+				}
+
+				combine(0, []);
+				return result;
+			};
+
+			// Obter cover mínimo (lado direito unitário) - VERSÃO SIMPLIFICADA
 			const getMinimalCover = (fds) => {
-				let Fc_step1 = [];
+				const minimalCover = [];
 
-				// Tornar lado direito unitário
-				for (const d of fds) {
-					for (const r of d.right) {
-						Fc_step1.push({ left: [...d.left], right: [r] });
-					}
-				}
-
-				// Remover redundâncias
-				const nonRedundantFds = [];
-				for (let i = 0; i < Fc_step1.length; i++) {
-					const d_i = Fc_step1[i];
-					const F_prime = Fc_step1.filter((_, idx) => idx !== i);
-
-					const cl = closureOf(d_i.left, F_prime);
-					// Se remover a DF faz com que o fecho não contenha mais o atributo do lado direito, então a DF é necessária.
-					if (!cl.has(d_i.right[0])) {
-						nonRedundantFds.push(d_i);
-					}
-				}
-
-				return nonRedundantFds;
-			};
-
-			for (const table of tables) {
-				// Copia profunda para evitar mutação
-				let tableCopy = JSON.parse(JSON.stringify(table));
-
-				// Lista de atributos da tabela (com e sem PK)
-				let attrsList = tableCopy.attributes || [];
-				let rawAttrs = attrsList.map(stripPk);
-
-				// Normaliza dependências funcionais
-				let fds = (tableCopy.dfs || []).map(df => ({
-					left: (df.left || []).map(stripPk),
-					right: (df.right || []).map(stripPk)
-				}));
-
-				const Fc = getMinimalCover(fds);
-
-				const groups = new Map();
-				for (const d of Fc) {
-					const leftKey = d.left.sort().join(',');
-					if (!groups.has(leftKey)) {
-						groups.set(leftKey, { left: d.left, rights: new Set() });
-					}
-					d.right.forEach(r => groups.get(leftKey).rights.add(r));
-				}
-
-				let relations = [];
-				const generatedRelationsAttrsRaw = [];
-
-				let relationCounter = 0;
-				for (const group of groups.values()) {
-					const X = group.left;
-					const Y = Array.from(group.rights);
-
-					const relationAttrsRawSet = new Set([...X, ...Y]);
-					const relationAttrsRaw = Array.from(relationAttrsRawSet).sort();
-					const relationAttrsRawString = relationAttrsRaw.join(',');
-
-					const Y_out = relationAttrsRaw.filter(a => !X.includes(a));
-					const dfOut = {
-						left: X.map(markPk), // determinante vira PK
-						right: Y_out
-					};
-
-					let existingRelationIndex = -1;
-					for (let i = 0; i < generatedRelationsAttrsRaw.length; i++) {
-						if (generatedRelationsAttrsRaw[i].join(',') === relationAttrsRawString) {
-							existingRelationIndex = i;
-							break;
-						}
-					}
-
-					if (existingRelationIndex === -1) {
-						// Nova relação
-						relationCounter++;
-						const newRelation = {
-							table: `${table.table}_3NF_${relationCounter}`,
-							attributes: relationAttrsRaw.map(a => X.includes(a) ? markPk(a) : a),
-							dfs: [dfOut]
-						};
-						relations.push(newRelation);
-						generatedRelationsAttrsRaw.push(relationAttrsRaw);
-					} else {
-						// Relação já existe: adiciona DF a ela
-						relations[existingRelationIndex].dfs.push(dfOut);
-					}
-				}
-
-				relations = relations.map(r => {
-					if (r.dfs.some(d => d.left.includes(markPk('Area')))) {
-						r.table = `${table.table}_3NF_Area`;
-						r.attributes = r.attributes.map(a => {
-							const rawA = stripPk(a);
-							if (r.dfs.some(d => d.left.includes(markPk(rawA)))) {
-								return markPk(rawA);
-							}
-							return a;
+				// Apenas tornar lado direito unitário (sem remover redundâncias)
+				for (const fd of fds) {
+					for (const rightAttr of fd.right) {
+						minimalCover.push({
+							left: [...fd.left],
+							right: [rightAttr]
 						});
 					}
-					return r;
-				});
+				}
 
-				const candidateKeys = findCandidateKeys(rawAttrs, fds);
-				let keyIsCovered = false;
+				return minimalCover;
+			};
 
-				if (candidateKeys.length > 0) {
-					const primaryKey = candidateKeys[0];
+			// Identificar dependências transitivas - MESMA LÓGICA DA PRIMEIRA FUNÇÃO
+			const findTransitiveDependencies = (fds, candidateKeys) => {
+				const transitive = [];
 
-					// Verifica se a chave já está coberta em alguma relação gerada
-					keyIsCovered = generatedRelationsAttrsRaw.some(r_attrs =>
-						primaryKey.every(k => r_attrs.includes(k))
+				for (const fd of fds) {
+					const determinant = fd.left[0];
+					const dependent = fd.right[0];
+
+					// Verificar se é transitiva - MESMA LÓGICA
+					const isDeterminantSuperkey = candidateKeys.some(key =>
+						key.includes(determinant)
 					);
 
-					if (!keyIsCovered) {
-						// Se não estiver, cria relação contendo apenas a chave
-						const keyRelationAttrs = primaryKey.map(markPk);
-						relations.push({
-							table: `${table.table}_3NF_Key`,
-							attributes: keyRelationAttrs,
-							dfs: []
-						});
+					const isDependentInKey = candidateKeys.some(key =>
+						key.includes(dependent)
+					);
+
+					const isTransitive = !isDeterminantSuperkey && !isDependentInKey;
+
+					if (isTransitive) {
+						transitive.push(fd);
 					}
 				}
 
-				// Adiciona todas as relações geradas ao resultado final
-				result.push(...relations);
+				return transitive;
+			};
+
+			// PROCESSAMENTO PRINCIPAL
+			for (const table of tables) {
+				const tableCopy = JSON.parse(JSON.stringify(table));
+
+				// Preparar dados (remover marcações PK temporariamente)
+				const rawAttributes = tableCopy.attributes.map(stripPk);
+				const rawFDs = tableCopy.dfs.map(fd => ({
+					left: fd.left.map(stripPk),
+					right: fd.right.map(stripPk)
+				}));
+
+				// Obter cover mínimo - VERSÃO SIMPLIFICADA
+				const minimalCover = getMinimalCover(rawFDs);
+
+				// Encontrar chaves candidatas
+				const candidateKeys = findCandidateKeys(rawAttributes, minimalCover);
+
+				// Encontrar dependências transitivas - MESMA LÓGICA
+				const transitiveFDs = findTransitiveDependencies(minimalCover, candidateKeys);
+
+				// Se não há dependências transitivas, tabela já está em 3NF
+				if (transitiveFDs.length === 0) {
+					result.push(tableCopy);
+					continue;
+				}
+
+				// Agrupar dependências transitivas por determinante
+				const transitiveGroups = new Map();
+				for (const fd of transitiveFDs) {
+					const determinant = fd.left[0];
+					if (!transitiveGroups.has(determinant)) {
+						transitiveGroups.set(determinant, []);
+					}
+					transitiveGroups.get(determinant).push(fd.right[0]);
+				}
+
+				// Criar novas tabelas para dependências transitivas
+				const newTables = [];
+				const removedAttributes = new Set();
+
+				for (const [determinant, dependents] of transitiveGroups) {
+					// Criar nova tabela
+					const newTable = {
+						table: `${tableCopy.table}_3NF_${determinant}`,
+						attributes: [
+							markPk(determinant),
+							...dependents
+						],
+						dfs: [{
+							left: [markPk(determinant)],
+							right: dependents
+						}]
+					};
+					newTables.push(newTable);
+
+					// Marcar atributos para remoção (apenas os dependentes)
+					dependents.forEach(dep => removedAttributes.add(dep));
+				}
+
+				// Atualizar tabela original
+				const updatedOriginal = {
+					table: tableCopy.table,
+					attributes: tableCopy.attributes.filter(attr =>
+						!removedAttributes.has(stripPk(attr))
+					),
+					dfs: tableCopy.dfs
+						.map(fd => ({
+							left: fd.left,
+							right: fd.right.filter(attr => !removedAttributes.has(stripPk(attr)))
+						}))
+						.filter(fd => fd.right.length > 0)
+				};
+
+				// Adicionar ao resultado
+				result.push(updatedOriginal, ...newTables);
 			}
 
 			return result;
 		}
 
-		
 		const contextTable = [];
 
 		$ctrl.tables.forEach(t => {
@@ -729,169 +869,14 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 				dfs: $ctrl.functionalDependencies.map(df => ({ left: df.left, right: df.right, isPk: df.isPk }))
 			});
 		});
-		$ctrl.sergio = [
-			[
-				{
-					"table": "SERGIO",
-					"attributes": [
-						"A",
-						"B",
-						"C",
-						"D",
-						"F",
-						"G",
-						"H",
-						"I",
-						"J"
-					],
-					"dfs": [
-						{
-							"left": [
-								"B",
-								"C",
-								"D"
-							],
-							"right": [
-								"A",
-								"F",
-								"G"
-							]
-						},
-						{
-							"left": [
-								"C",
-								"D"
-							],
-							"right": [
-								"H",
-								"I"
-							]
-						},
-						{
-							"left": [
-								"I"
-							],
-							"right": [
-								"H"
-							]
-						},
-						{
-							"left": [
-								"H"
-							],
-							"right": [
-								"J"
-							]
-						}
-					]
-				}
-			],
-			[
-				{
-					"table": "SERGIO",
-					"attributes": [
-						"A: PK",
-						"B: PK",
-						"C",
-						"D",
-						"E"
-					],
-					"dfs": [
-						{
-							"left": [
-								"A: PK"
-							],
-							"right": [
-								"C",
-								"D"
-							]
-						},
-						{
-							"left": [
-								"B: PK"
-							],
-							"right": [
-								"E"
-							]
-						},
-						{
-							"left": [
-								"D"
-							],
-							"right": [
-								"C"
-							]
-						}
-					]
-				}
-			],
-			[
-				{
-					"table": "SERGIO",
-					"attributes": [
-						"X",
-						"Y",
-						"Z: PK",
-						"W: PK",
-						"K"
-					],
-					"dfs": [
-						{
-							"left": [
-								"X"
-							],
-							"right": [
-								"Z: PK"
-							]
-						},
-						{
-							"left": [
-								"Z: PK",
-								"W: PK"
-							],
-							"right": [
-								"X",
-								"Y",
-								"K"
-							]
-						}
-					]
-				}
-			],
-			[
-				{
-					"table": "EMP_DEPT",
-					"attributes": [
-						"Ename",
-						"Ssn: PK",
-						"Bdate",
-						"Address",
-						"Dnumber",
-						"Dname",
-						"Dmgr_ssn"
-					],
-					"dfs": [
-						{
-							"left": ["Ssn: PK"],
-							"right": ["Ename", "Bdate", "Address", "Dnumber"]
-						},
-						{
-							"left": ["Dnumber"],
-							"right": ["Dname", "Dmgr_ssn"]
-						}
-					]
-				}
-			]
-
-		]
 
 		if (contextTable && contextTable.every(t => t.dfs.length > 0)) {
-			(to3NF(to2NF($ctrl.sergio[2]))).forEach(table => {
+			(to3NF(to2NF($ctrl.sergio[1]))).forEach(table => {
 				if (table.dfs && table.dfs.length > 0) {
 					NormalizerStateService.setByTable(table.table, table.dfs);
 				}
 			})
-			LogicService.replaceTablesFromJson((to3NF(to2NF($ctrl.sergio[2]))));
+			LogicService.replaceTablesFromJson((to3NF(to2NF($ctrl.sergio[1]))));
 		}
 
 		$ctrl.close({ tables: $ctrl.tables });
