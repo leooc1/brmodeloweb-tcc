@@ -139,7 +139,7 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 		]
 	]
 
-	$ctrl.testeTable = [
+	$ctrl.teste2nf = [
 		//lotes
 		[
 			{
@@ -301,7 +301,38 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 				]
 			}
 		],
-		// lotes 3FN
+		// tbl_pecas
+		[
+			{
+				"table": "tbl_pecas",
+				"attributes": [
+					"COD_PECA: PK",
+					"COD_FORNEC: PK",
+					"LOCAL_FORNECEDOR",
+					"QTDE_ESTOQUE",
+					"TEL_FORNECEDOR",
+					"QTDE_CAIXA"
+				],
+				"dfs": [
+					{
+						"left": ["COD_FORNEC: PK"],
+						"right": ["LOCAL_FORNECEDOR", "TEL_FORNECEDOR"]
+					},
+					{
+						"left": ["COD_FORNEC: PK", "COD_PECA: PK"],
+						"right": ["QTDE_ESTOQUE", "QTDE_CAIXA"]
+					},
+					{
+						"left": ["QTDE_ESTOQUE"],
+						"right": ["QTDE_CAIXA"]
+					}
+				]
+			}
+		]
+	];
+
+	$ctrl.teste3nf = [
+		//lotes 2FN
 		[
 			{
 				"table": "LOTS_PARCIAL1",
@@ -321,28 +352,12 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 				]
 			},
 			{
-				"table": "LOTS_3NF_Area",
-				"attributes": [
-					"Area: PK",
-					"Price"
-				],
-				"dfs": [
-					{
-						"left": [
-							"Area: PK"
-						],
-						"right": [
-							"Price"
-						]
-					}
-				]
-			},
-			{
 				"table": "LOTS",
 				"attributes": [
 					"County_name",
 					"Lot#",
 					"Area",
+					"Price",
 					"Property_id#: PK"
 				],
 				"dfs": [
@@ -353,7 +368,8 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 						"right": [
 							"County_name",
 							"Lot#",
-							"Area"
+							"Area",
+							"Price"
 						]
 					},
 					{
@@ -363,7 +379,16 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 						],
 						"right": [
 							"Property_id#: PK",
+							"Area",
+							"Price"
+						]
+					},
+					{
+						"left": [
 							"Area"
+						],
+						"right": [
+							"Price"
 						]
 					}
 				]
@@ -393,8 +418,32 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 					}
 				]
 			}
+		],
+		// tbl_VENDA
+		[
+			{
+				"table": "tbl_VENDA",
+				"attributes": [
+					"NOTA_FISCAL: PK",
+					"COD_VENDEDOR",
+					"NOME_VENDEDOR",
+					"COD_PRODUTO",
+					"QTDE_VENDIDA"
+				],
+				"dfs": [
+					{
+						"left": ["NOTA_FISCAL: PK"],
+						"right": ["COD_VENDEDOR", "COD_PRODUTO", "QTDE_VENDIDA"]
+					},
+					{
+						"left": ["COD_VENDEDOR"],
+						"right": ["NOME_VENDEDOR"]
+					}
+				]
+			}
 		]
-	];
+	]
+
 	$ctrl.tables = [];
 	$ctrl.selectedTable = null;
 	$ctrl.attributes = [];
@@ -871,12 +920,12 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 		});
 
 		if (contextTable && contextTable.every(t => t.dfs.length > 0)) {
-			(to3NF(to2NF($ctrl.sergio[1]))).forEach(table => {
+			(to3NF(to2NF(contextTable))).forEach(table => {
 				if (table.dfs && table.dfs.length > 0) {
 					NormalizerStateService.setByTable(table.table, table.dfs);
 				}
 			})
-			LogicService.replaceTablesFromJson((to3NF(to2NF($ctrl.sergio[1]))));
+			LogicService.replaceTablesFromJson((to3NF(to2NF(contextTable))));
 		}
 
 		$ctrl.close({ tables: $ctrl.tables });
