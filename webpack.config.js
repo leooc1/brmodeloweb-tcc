@@ -10,8 +10,9 @@ module.exports = {
 	context: `${__dirname}/app`,
 	entry: "./angular/index.js",
 	output: {
-		path: `${__dirname}/app/dist`,
-		filename: "[name].js",
+		path: path.resolve(__dirname, 'app/dist'),
+		filename: 'bundle.js',
+		publicPath: '/'
 	},
 	resolve: {
 		extensions: [".js", ".jsx", ".ts", ".tsx", ".json"],
