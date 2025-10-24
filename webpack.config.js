@@ -3,16 +3,16 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const Dotenv = require("dotenv-webpack");
-const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin")
+const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
 
 module.exports = {
-	mode: process.env.NODE_ENV,
-	context: `${__dirname}/app`,
+	mode: process.env.NODE_ENV || "development",
+	context: path.resolve(__dirname, "app"),
 	entry: "./angular/index.js",
 	output: {
-		path: path.resolve(__dirname, 'app/dist'),
-		filename: 'bundle.js',
-		publicPath: '/'
+		path: path.resolve(__dirname, "app/dist"),
+		filename: "[name].js",
+		publicPath: "/" // ✅ Importante para SPA funcionar no Vercel
 	},
 	resolve: {
 		extensions: [".js", ".jsx", ".ts", ".tsx", ".json"],
@@ -27,15 +27,17 @@ module.exports = {
 		static: path.join(__dirname, "app"),
 		compress: true,
 		port: 9000,
+		historyApiFallback: true, // ✅ SPA no dev também
 	},
 	plugins: [
 		new Dotenv({ systemvars: true }),
 		new HtmlWebpackPlugin({
-			template: "index.html",
-			favicon: `${__dirname}/app/img/brmw-logo.svg`,
+			template: "./index.html",
+			filename: "index.html", // ✅ Agora o HTML vai para o dist corretamente
+			favicon: path.resolve(__dirname, "app/img/brmw-logo.svg"),
 		}),
 		new MiniCssExtractPlugin({
-			filename: `bundle.css`,
+			filename: "bundle.css",
 		}),
 	],
 	optimization: {
@@ -61,25 +63,19 @@ module.exports = {
 				use: ["babel-loader"],
 			},
 			{
-				test: /\.html$/i,
-				loader: "html-loader",
+				test: /\.html$/,
+				use: ["html-loader"],
 			},
 			{
 				test: /\.(png|jpe?g|gif|svg)$/i,
 				type: "asset/resource",
 			},
 			{
-				test: /\.(sa|sc|c)ss$/,
+				test: /\.(sa|sc|c)ss$/, // ✅ CSS agora funciona no Vercel
 				use: [
-					{
-						loader: "style-loader",
-					},
-					{
-						loader: "css-loader",
-					},
-					{
-						loader: "postcss-loader",
-					},
+					MiniCssExtractPlugin.loader,
+					"css-loader",
+					"postcss-loader",
 					{
 						loader: "sass-loader",
 						options: {
@@ -89,7 +85,7 @@ module.exports = {
 				],
 			},
 			{
-				test: /\.(woff(2)?|ttf|eot)(\?v=\d+\.\d+\.\d+)?$/,
+				test: /\.(woff(2)?|ttf|eot)$/,
 				type: "asset/resource",
 			},
 		],
