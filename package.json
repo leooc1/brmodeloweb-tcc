@@ -6,7 +6,7 @@
 		"start": "node server.js",
 		"start:dev": "cross-env NODE_ENV=development nodemon server.js",
 		"start:frontend": "cross-env NODE_ENV=development webpack-dev-server --hot --progress --color",
-		"build": "cross-env NODE_ENV=production rimraf ./app/dist && webpack --progress --color",
+		"build": "cross-env NODE_ENV=development rimraf ./app/dist && webpack --progress --color",
 		"test": "jest --coverage",
 		"test:cy": "yarn cypress run",
 		"test:watch": "jest --watch",
