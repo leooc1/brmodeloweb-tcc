@@ -8,10 +8,10 @@
       }
     }
   ],
+  "devCommand": "yarn start:frontend",
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+    { "src": "/(.*\\.(js|css|map|png|jpg|jpeg|svg|woff|woff2|json|ico))$", "dest": "/app/dist/$1" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/app/dist/index.html" }
   ]
 }
