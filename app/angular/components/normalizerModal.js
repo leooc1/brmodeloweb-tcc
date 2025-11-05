@@ -136,6 +136,36 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 					}
 				]
 			}
+		],
+		//
+		[
+			{
+				"table": "SERGIO",
+				"attributes": [
+					"A",
+					"B",
+					"C"
+				],
+				"dfs": [
+					{
+						"left": [
+							"A"
+						],
+						"right": [
+							"B",
+							"C"
+						]
+					},
+					{
+						"left": [
+							"B"
+						],
+						"right": [
+							"C"
+						]
+					}
+				]
+			}
 		]
 	]
 
@@ -902,7 +932,23 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 				};
 
 				// Adicionar ao resultado
-				result.push(updatedOriginal, ...newTables);
+				result.push(updatedOriginal.dfs.length == 1 ?
+					{
+						...updatedOriginal,
+						attributes: updatedOriginal.attributes.map(attr => {
+							if (updatedOriginal.dfs.some(fd => fd.left.includes(attr))) {
+								return `${attr.split(':')[0].trim()}: PK`;
+							}
+							return attr;
+						}),
+						dfs: updatedOriginal.dfs.map(fd => ({
+							left: fd.left.map(attr => {
+								return attr + ': PK';
+							}),
+							right: fd.right
+						}))
+					} :
+					updatedOriginal, ...newTables);
 			}
 
 			return result;
