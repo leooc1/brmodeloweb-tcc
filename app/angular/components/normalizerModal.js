@@ -975,12 +975,12 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 		});
 
 		if (contextTable && contextTable.every(t => t.dfs.length > 0)) {
-			(to3NF(to2NF($ctrl.sergio[3]))).forEach(table => {
+			(to3NF(to2NF(contextTable))).forEach(table => {
 				if (table.dfs && table.dfs.length > 0) {
 					NormalizerStateService.setByTable(table.table, table.dfs);
 				}
 			})
-			LogicService.replaceTablesFromJson((to3NF(to2NF($ctrl.sergio[3]))));
+			LogicService.replaceTablesFromJson((to3NF(to2NF(contextTable))));
 		}
 
 		$ctrl.close({ tables: $ctrl.tables });
