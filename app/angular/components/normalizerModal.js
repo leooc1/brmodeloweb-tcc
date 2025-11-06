@@ -1,6 +1,7 @@
 import angular from "angular";
 import template from "./normalizerModal.html";
 import NormalizerStateServiceModule from "./normalizerStateService";
+import { t } from "i18next";
 
 const app = angular.module("app.normalizerModal", [NormalizerStateServiceModule]);
 
@@ -143,8 +144,7 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 				"table": "SERGIO",
 				"attributes": [
 					"A",
-					"B",
-					"C"
+					"B"
 				],
 				"dfs": [
 					{
@@ -152,16 +152,7 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 							"A"
 						],
 						"right": [
-							"B",
-							"C"
-						]
-					},
-					{
-						"left": [
 							"B"
-						],
-						"right": [
-							"C"
 						]
 					}
 				]
@@ -861,6 +852,7 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 			// PROCESSAMENTO PRINCIPAL
 			for (const table of tables) {
 				const tableCopy = JSON.parse(JSON.stringify(table));
+				console.log('Processing table for 3NF:', tableCopy);
 
 				// Preparar dados (remover marcações PK temporariamente)
 				const rawAttributes = tableCopy.attributes.map(stripPk);
@@ -918,6 +910,7 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 				}
 
 				// Atualizar tabela original
+				console.log('Normalizing table:', table);
 				const updatedOriginal = {
 					table: tableCopy.table,
 					attributes: tableCopy.attributes.filter(attr =>
@@ -950,8 +943,24 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 					} :
 					updatedOriginal, ...newTables);
 			}
-
-			return result;
+			if (JSON.stringify(result) == JSON.stringify(tables) && tables.length == 1)
+				return [{
+					...tables[0],
+					attributes: tables[0].attributes.map(attr => {
+						if (tables[0].dfs.some(fd => fd.left.includes(attr))) {
+							return `${attr.split(':')[0].trim()}: PK`;
+						}
+						return attr;
+					}),
+					dfs: tables[0].dfs.map(fd => ({
+						left: fd.left.map(attr => {
+							return attr + ': PK';
+						}),
+						right: fd.right
+					}))
+				}]
+			else
+				return result;
 		}
 
 		const contextTable = [];
@@ -966,12 +975,12 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 		});
 
 		if (contextTable && contextTable.every(t => t.dfs.length > 0)) {
-			(to3NF(to2NF(contextTable))).forEach(table => {
+			(to3NF(to2NF($ctrl.sergio[3]))).forEach(table => {
 				if (table.dfs && table.dfs.length > 0) {
 					NormalizerStateService.setByTable(table.table, table.dfs);
 				}
 			})
-			LogicService.replaceTablesFromJson((to3NF(to2NF(contextTable))));
+			LogicService.replaceTablesFromJson((to3NF(to2NF($ctrl.sergio[3]))));
 		}
 
 		$ctrl.close({ tables: $ctrl.tables });
