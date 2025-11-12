@@ -8,472 +8,6 @@ const app = angular.module("app.normalizerModal", [NormalizerStateServiceModule]
 function Controller(SqlNormalizerService, LogicService, NormalizerStateService) {
 	const $ctrl = this;
 
-	$ctrl.sergio = [
-		[
-			{
-				"table": "SERGIO",
-				"attributes": [
-					"A",
-					"B",
-					"C",
-					"D",
-					"F",
-					"G",
-					"H",
-					"I",
-					"J"
-				],
-				"dfs": [
-					{
-						"left": [
-							"B",
-							"C",
-							"D"
-						],
-						"right": [
-							"A",
-							"F",
-							"G"
-						]
-					},
-					{
-						"left": [
-							"C",
-							"D"
-						],
-						"right": [
-							"H",
-							"I"
-						]
-					},
-					{
-						"left": [
-							"I"
-						],
-						"right": [
-							"H"
-						]
-					},
-					{
-						"left": [
-							"H"
-						],
-						"right": [
-							"J"
-						]
-					}
-				]
-			}
-		],
-		[
-			{
-				"table": "SERGIO",
-				"attributes": [
-					"A: PK",
-					"B: PK",
-					"C",
-					"D",
-					"E"
-				],
-				"dfs": [
-					{
-						"left": [
-							"A: PK"
-						],
-						"right": [
-							"C",
-							"D"
-						]
-					},
-					{
-						"left": [
-							"B: PK"
-						],
-						"right": [
-							"E"
-						]
-					},
-					{
-						"left": [
-							"D"
-						],
-						"right": [
-							"C"
-						]
-					}
-				]
-			}
-		],
-		[
-			{
-				"table": "SERGIO",
-				"attributes": [
-					"X",
-					"Y",
-					"Z: PK",
-					"W: PK",
-					"K"
-				],
-				"dfs": [
-					{
-						"left": [
-							"X"
-						],
-						"right": [
-							"Z: PK"
-						]
-					},
-					{
-						"left": [
-							"Z: PK",
-							"W: PK"
-						],
-						"right": [
-							"X",
-							"Y",
-							"K"
-						]
-					}
-				]
-			}
-		],
-		//
-		[
-			{
-				"table": "SERGIO",
-				"attributes": [
-					"A",
-					"B",
-					"C"
-				],
-				"dfs": [
-					{
-						"left": [
-							"A"
-						],
-						"right": [
-							"B",
-							"C"
-						]
-					},
-					{
-						"left": [
-							"B"
-						],
-						"right": [
-							"C"
-						]
-					}
-				]
-			}
-		]
-	]
-
-	$ctrl.teste2nf = [
-		//lotes
-		[
-			{
-				"table": "LOTS",
-				"attributes": ["Property_id#: PK", "County_name", "Lot#", "Area", "Price", "Tax_rate"],
-				"dfs": [
-					{ "left": ["Property_id#: PK"], "right": ["County_name", "Lot#", "Area", "Price", "Tax_rate"] },
-					{ "left": ["County_name", "Lot#"], "right": ["Property_id#: PK", "Area", "Price", "Tax_rate"] },
-					{ "left": ["County_name"], "right": ["Tax_rate"] },
-					{ "left": ["Area"], "right": ["Price"] }
-				]
-			}
-		],
-		//lotes 2FN
-		[
-			{
-				"table": "LOTS_PARCIAL1",
-				"attributes": [
-					"County_name: PK",
-					"Tax_rate"
-				],
-				"dfs": [
-					{
-						"left": [
-							"County_name: PK"
-						],
-						"right": [
-							"Tax_rate"
-						]
-					}
-				]
-			},
-			{
-				"table": "LOTS",
-				"attributes": [
-					"County_name",
-					"Lot#",
-					"Area",
-					"Price",
-					"Property_id#: PK"
-				],
-				"dfs": [
-					{
-						"left": [
-							"Property_id#: PK"
-						],
-						"right": [
-							"County_name",
-							"Lot#",
-							"Area",
-							"Price"
-						]
-					},
-					{
-						"left": [
-							"County_name",
-							"Lot#"
-						],
-						"right": [
-							"Property_id#: PK",
-							"Area",
-							"Price"
-						]
-					},
-					{
-						"left": [
-							"Area"
-						],
-						"right": [
-							"Price"
-						]
-					}
-				]
-			}
-		],
-		// emp_proj
-		[
-			{
-				"table": "EMP_PROJ",
-				"attributes": [
-					"Ssn: PK",
-					"Pnumber: PK",
-					"Hours",
-					"Ename",
-					"Pname",
-					"Plocation"
-				],
-				"dfs": [
-					{
-						"left": ["Ssn: PK", "Pnumber: PK"],
-						"right": ["Hours"]
-					},
-					{
-						"left": ["Ssn: PK"],
-						"right": ["Ename"]
-					},
-					{
-						"left": ["Pnumber: PK"],
-						"right": ["Pname", "Plocation"]
-					}
-				]
-			}
-		],
-		// emp_proj 2FN
-		[
-			{
-				"table": "EMP_PROJ_PARCIAL1",
-				"attributes": [
-					"Ssn: PK",
-					"Ename"
-				],
-				"dfs": [
-					{
-						"left": [
-							"Ssn: PK"
-						],
-						"right": [
-							"Ename"
-						]
-					}
-				]
-			},
-			{
-				"table": "EMP_PROJ_PARCIAL2",
-				"attributes": [
-					"Pnumber: PK",
-					"Pname",
-					"Plocation"
-				],
-				"dfs": [
-					{
-						"left": [
-							"Pnumber: PK"
-						],
-						"right": [
-							"Pname",
-							"Plocation"
-						]
-					}
-				]
-			},
-			{
-				"table": "EMP_PROJ",
-				"attributes": [
-					"Ssn: PK",
-					"Pnumber: PK",
-					"Hours"
-				],
-				"dfs": [
-					{
-						"left": [
-							"Ssn: PK",
-							"Pnumber: PK"
-						],
-						"right": [
-							"Hours"
-						]
-					}
-				]
-			}
-		],
-		// tbl_pecas
-		[
-			{
-				"table": "tbl_pecas",
-				"attributes": [
-					"COD_PECA: PK",
-					"COD_FORNEC: PK",
-					"LOCAL_FORNECEDOR",
-					"QTDE_ESTOQUE",
-					"TEL_FORNECEDOR",
-					"QTDE_CAIXA"
-				],
-				"dfs": [
-					{
-						"left": ["COD_FORNEC: PK"],
-						"right": ["LOCAL_FORNECEDOR", "TEL_FORNECEDOR"]
-					},
-					{
-						"left": ["COD_FORNEC: PK", "COD_PECA: PK"],
-						"right": ["QTDE_ESTOQUE", "QTDE_CAIXA"]
-					},
-					{
-						"left": ["QTDE_ESTOQUE"],
-						"right": ["QTDE_CAIXA"]
-					}
-				]
-			}
-		]
-	];
-
-	$ctrl.teste3nf = [
-		//lotes 2FN
-		[
-			{
-				"table": "LOTS_PARCIAL1",
-				"attributes": [
-					"County_name: PK",
-					"Tax_rate"
-				],
-				"dfs": [
-					{
-						"left": [
-							"County_name: PK"
-						],
-						"right": [
-							"Tax_rate"
-						]
-					}
-				]
-			},
-			{
-				"table": "LOTS",
-				"attributes": [
-					"County_name",
-					"Lot#",
-					"Area",
-					"Price",
-					"Property_id#: PK"
-				],
-				"dfs": [
-					{
-						"left": [
-							"Property_id#: PK"
-						],
-						"right": [
-							"County_name",
-							"Lot#",
-							"Area",
-							"Price"
-						]
-					},
-					{
-						"left": [
-							"County_name",
-							"Lot#"
-						],
-						"right": [
-							"Property_id#: PK",
-							"Area",
-							"Price"
-						]
-					},
-					{
-						"left": [
-							"Area"
-						],
-						"right": [
-							"Price"
-						]
-					}
-				]
-			}
-		],
-		// emp_dept
-		[
-			{
-				"table": "EMP_DEPT",
-				"attributes": [
-					"Ename",
-					"Ssn: PK",
-					"Bdate",
-					"Address",
-					"Dnumber",
-					"Dname",
-					"Dmgr_ssn"
-				],
-				"dfs": [
-					{
-						"left": ["Ssn: PK"],
-						"right": ["Ename", "Bdate", "Address", "Dnumber"]
-					},
-					{
-						"left": ["Dnumber"],
-						"right": ["Dname", "Dmgr_ssn"]
-					}
-				]
-			}
-		],
-		// tbl_VENDA
-		[
-			{
-				"table": "tbl_VENDA",
-				"attributes": [
-					"NOTA_FISCAL: PK",
-					"COD_VENDEDOR",
-					"NOME_VENDEDOR",
-					"COD_PRODUTO",
-					"QTDE_VENDIDA"
-				],
-				"dfs": [
-					{
-						"left": ["NOTA_FISCAL: PK"],
-						"right": ["COD_VENDEDOR", "COD_PRODUTO", "QTDE_VENDIDA"]
-					},
-					{
-						"left": ["COD_VENDEDOR"],
-						"right": ["NOME_VENDEDOR"]
-					}
-				]
-			}
-		]
-	]
-
 	$ctrl.tables = [];
 	$ctrl.selectedTable = null;
 	$ctrl.attributes = [];
@@ -493,7 +27,6 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 	};
 
 	$ctrl.selectTable = (table) => {
-		// Salva DFs da tabela anterior no serviço global
 		if ($ctrl.selectedTable) {
 			NormalizerStateService.setByTable(
 				$ctrl.selectedTable.name,
@@ -504,7 +37,6 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 		$ctrl.selectedTable = table;
 		$ctrl.attributes = (table.columns || []).map(c => c.name || "");
 
-		// Carrega DFs do serviço, persistindo entre fechamentos
 		$ctrl.functionalDependencies = NormalizerStateService.getByTable(table.name);
 		$ctrl.currentDF = { left: [], right: [] };
 	};
@@ -526,7 +58,6 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 				right: df.right.filter(a => a !== attr)
 			}))
 			.filter(df => df.left.length > 0 && df.right.length > 0);
-		// Atualiza serviço
 		if ($ctrl.selectedTable) {
 			NormalizerStateService.setByTable($ctrl.selectedTable.name, $ctrl.functionalDependencies);
 		}
@@ -567,7 +98,6 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 				right: [...$ctrl.currentDF.right]
 			});
 			$ctrl.currentDF = { left: [], right: [] };
-			// Salva no serviço
 			if ($ctrl.selectedTable) {
 				NormalizerStateService.setByTable($ctrl.selectedTable.name, $ctrl.functionalDependencies);
 			}
@@ -612,7 +142,7 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 			let finalResult = [];
 
 			for (const table of tables) {
-				// Busca se há chave declarada
+				// Busca se há PK declarada
 				const primeAttributes = table.attributes
 					.filter(attr => attr.includes(": PK"))
 					.map(attr => attr.split(":")[0].trim());
@@ -814,7 +344,7 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 				return result;
 			};
 
-			// Obter cover mínimo (lado direito unitário) - VERSÃO SIMPLIFICADA
+			// Obter cover mínimo (lado direito unitário)
 			const getMinimalCover = (fds) => {
 				const minimalCover = [];
 
@@ -831,7 +361,7 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 				return minimalCover;
 			};
 
-			// Identificar dependências transitivas - MESMA LÓGICA DA PRIMEIRA FUNÇÃO
+			// Identificar dependências transitivas
 			const findTransitiveDependencies = (fds, candidateKeys) => {
 				const transitive = [];
 
@@ -869,13 +399,13 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 					right: fd.right.map(stripPk)
 				}));
 
-				// Obter cover mínimo - VERSÃO SIMPLIFICADA
+				// Obter cover mínimo
 				const minimalCover = getMinimalCover(rawFDs);
 
 				// Encontrar chaves candidatas
 				const candidateKeys = findCandidateKeys(rawAttributes, minimalCover);
 
-				// Encontrar dependências transitivas - MESMA LÓGICA
+				// Encontrar dependências transitivas
 				const transitiveFDs = findTransitiveDependencies(minimalCover, candidateKeys);
 
 				// Se não há dependências transitivas, tabela já está em 3NF
@@ -932,23 +462,7 @@ function Controller(SqlNormalizerService, LogicService, NormalizerStateService) 
 				};
 
 				// Adicionar ao resultado
-				result.push(updatedOriginal.dfs.length == 1 ?
-					{
-						...updatedOriginal,
-						attributes: updatedOriginal.attributes.map(attr => {
-							if (updatedOriginal.dfs.some(fd => fd.left.includes(attr))) {
-								return `${attr.split(':')[0].trim()}: PK`;
-							}
-							return attr;
-						}),
-						dfs: updatedOriginal.dfs.map(fd => ({
-							left: fd.left.map(attr => {
-								return attr + ': PK';
-							}),
-							right: fd.right
-						}))
-					} :
-					updatedOriginal, ...newTables);
+				result.push(updatedOriginal, ...newTables);
 			}
 
 			return result;
